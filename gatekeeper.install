@@ -1,0 +1,61 @@
+<?php
+
+/**
+ * Implements hook_install()
+ */
+function gatekeeper_install() {
+  
+}
+
+/**
+ * Implements hook_uninstall()
+ */
+function gatekeeper_uninstall() {
+  
+}
+
+/**
+ * Implements hook_schema()
+ */
+function gatekeeper_schema() {
+  $schema['gatekeeper'] = array(
+    'description' => 'The base table for gatekeeper.', 
+    'fields' => array( 
+      'power' => array(
+        'description' => 'The power or functionality', 
+        'type' => 'varchar', 
+        'length' => 255, 
+        'not null' => TRUE, 
+        'default' => '',
+      ),
+      'gate' => array(
+        'description' => 'The gate which the magickey will open.', 
+        'type' => 'varchar', 
+        'length' => 255, 
+        'not null' => TRUE, 
+        'default' => '',
+      ),
+      'magickey' => array(
+        'description' => 'The magickey to open the gate.', 
+        'type' => 'varchar', 
+        'length' => 255, 
+        'not null' => TRUE, 
+        'default' => '',
+      ),
+      'masterkey' => array(
+        'description' => 'If the masterkey is active for this power', 
+        'type' => 'int', 
+        'not null' => TRUE, 
+        'default' => 0,
+      ), 
+    ), 
+    'indexes' => array(
+      'power' => array('power'), 
+      'gate' => array('gate'), 
+      'magickey' => array('magickey'),
+    ), 
+    'primary key' => array('power'),
+  );
+  
+  return $schema;
+}

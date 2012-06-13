@@ -35,61 +35,7 @@ function gatekeeperui_menu() {
   return $items;
 }
 
-/**
- * Check who has a given power
- * The power will be queried to the database to get a gate and a magickey
- * That gate and magickey will be passed to gatekeeper
- * In case we want to open a functionality to everyone we can define the
- * use of the masterkey in which case all users will be granted access
- */
-function gatekeeper_power($power) {
-	/*
-	$query = db_select("gatekeeperui", "g")
-		->condition("power", $power, "=")
-		->fields("g")
-		->fetchObject()
-		->execute();
-	*/
-	// we should loop here since there could be many gates for one power
-	// for instance, we could set: tweet power to gate lang en
-	// and tweet power to gate lang es
-	// once we set the tweet power to use the masterkey, all users will be
-	// granted access so no gate or masterkey is necessary
-	if($power == "tweet") {
-		// This will be defined on the database
-		$query = new stdClass();
-		$query->gate = "lang";
-		$query->magickey = "es";
-		$query->masterkey = TRUE;
-			
-		if(gatekeeper(isset($query->gate) ? $query->gate : NULL, isset($query->magickey) ? $query->magickey : NULL, $query->masterkey)) {
-			return TRUE;
-		}	
-	}
-	
-	if($power == "posttofb") {
-		// This will be defined on the database
-		$query = new stdClass();
-		$query->masterkey = TRUE;
-			
-		if(gatekeeper(isset($query->gate) ? $query->gate : NULL, isset($query->magickey) ? $query->magickey : NULL, $query->masterkey)) {
-			return TRUE;
-		}	
-	}
-}
 
-/**
- * Define a hook to define functionality (powers)
- * this powers will show up when using gatekeeperui using the UI
- */
-function gatekeeperui_get_powers() {
-	$powers = &drupal_static(__FUNCTION__);
-  if (!isset($powers) || $reset) {
-    $powers = module_invoke_all('register_power');
-    drupal_alter('register_power', $powers);
-  }
 
-  // See module_implements() for an explanation of this cast.
-  return (array) $powers;
-}
+
 

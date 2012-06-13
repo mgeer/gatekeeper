@@ -1,0 +1,5 @@
+name = Gatekeeper Extras
+description = Enable some default functionality
+core = 7.x
+files[] = gatekeeper_extras.module
+dependencies[] = gatekeeper
