@@ -1,0 +1,93 @@
+LICENSE
+GNU VERSION 2 OR COMPATIBLE
+
+The Gatekeeper module is a Drupal module that prevents users from doing something
+and adds gates. This is an API module.
+
+Inspired by Facebook Gatekeeper (I don't work and never worked for Facebook)
+but I heard they have some kind of system like this one.
+
+With Gatekeeper you can define gates, then you give it a magic key,
+if the gate and the magic key match, you pass.
+
+Example:
+
+Let's say that you want to develop a feature but you only want to test it
+for users who live on the timezone "America/Chicago", you then use the
+gatekeeper module to use the gate "timezone" and the magickey "America/Chicago"
+so if a user has that magickey it will enter that gate. Which means, it will get
+granted access to that feature.
+
+The way to use it is really simple:
+
+<?php
+if(gatekeeper("timezone", "America/Chicago")) {
+  return "You live in Chicago!";
+}
+?>
+
+The module defines several gates by its own:
+
+- Role, with the magic keys "isadmin", "god", "all", "registered", "anonymous"
+- Language
+- Timezone
+- Platform with the magic keys: "development", "production"
+
+A more complex example is this one, suppose that you want to test a new feature
+for users who are registered and have spanish as language and live in Chicago, you'll do:
+
+<?php
+if(gatekeeper("timezone", "America/Chicago") && gatekeeper("role", "registered") && gatekeeper("lang", "es")) {
+  return "You live in Chicago, are a registered user and hablas español";
+}
+?>
+
+You can define more gates as you want, some examples could be to create gates:
+- By IP address
+- By some profile field like gender
+- Or even more complex criteria
+
+The way to do it is just implementing hook_register_gate()
+
+hook_register_gate must return an array of arrays, example:
+
+$gate["gender"] = array(
+	'options' => array('male', 'female', "all"),
+	'callback' => 'function_to_call_to_check_if_the_user_is_male_or_female'
+);
+
+You'll do all processing on the callback you specify, so in this case you'll do
+something like:
+
+function function_to_call_to_check_if_the_user_is_male_or_female($option) {
+	// always default to false
+	$access = FALSE;
+	switch($option) {
+		case "male":
+			// check here if the user is a male
+			if($user->profile_gender == "male") {
+				$access = TRUE;
+			}
+			break;
+		
+		case "female":
+			// check here if the user is a female
+			if($user->profile_gender == "female") {
+				$access = TRUE;
+			}
+			break;
+			
+		case "all":
+			$access = TRUE;
+			break;
+	}
+	
+	return $access;
+}
+
+And then you'll use it with:
+
+if(gatekeeper("gender", "female")) {
+  // do something that will only be processed to girls
+}
+

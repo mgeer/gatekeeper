@@ -1,0 +1,95 @@
+<?php
+/**
+ * @file gatekeeperui.module
+ * TODO: Enter file description here.
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function gatekeeperui_menu() {
+	/*
+  // This is the minimum information you can provide for a menu item.
+  $items['TODO: Enter path'] = array(
+    'title' => 'TODO: Enter menu item title',
+    'page callback' => 'TODO: Enter callback function',
+    'access arguments' => array('TODO: Enter user permissions'),
+  );
+  // more complex menu item
+  $items['TODO: Enter path'] = array(
+    'title' => 'TODO: Enter menu item title',
+    'description' => 'TODO: Enter description',
+    'page callback' => 'TODO: Enter callback function',
+    'page arguments' => '', // An array of arguments to pass to the page callback function. Integer values pass the corresponding URL component.
+    'access callback' => '', // defaults to user_access()
+    'access arguments' => array('TODO: Enter user permissions'),
+    'weight' => 0,
+    'type' => MENU_NORMAL_ITEM, // One of MENU_NORMAL_ITEM / MENU_CALLBACK / MENU_SUGGESTED_ITEM / MENU_LOCAL_TASK / MENU_DEFAULT_LOCAL_TASK
+    'menu_name' => '', // Menu to place this item in.
+    'title callback' => '', // Function to generate the title, defaults to t(). 
+    'title arguments' => '', // Arguments to send to t() or your custom callback. 
+  );
+  // OPTIONAL: Fill in additional static menu items
+	*/
+
+  return $items;
+}
+
+/**
+ * Check who has a given power
+ * The power will be queried to the database to get a gate and a magickey
+ * That gate and magickey will be passed to gatekeeper
+ * In case we want to open a functionality to everyone we can define the
+ * use of the masterkey in which case all users will be granted access
+ */
+function gatekeeper_power($power) {
+	/*
+	$query = db_select("gatekeeperui", "g")
+		->condition("power", $power, "=")
+		->fields("g")
+		->fetchObject()
+		->execute();
+	*/
+	// we should loop here since there could be many gates for one power
+	// for instance, we could set: tweet power to gate lang en
+	// and tweet power to gate lang es
+	// once we set the tweet power to use the masterkey, all users will be
+	// granted access so no gate or masterkey is necessary
+	if($power == "tweet") {
+		// This will be defined on the database
+		$query = new stdClass();
+		$query->gate = "lang";
+		$query->magickey = "es";
+		$query->masterkey = TRUE;
+			
+		if(gatekeeper(isset($query->gate) ? $query->gate : NULL, isset($query->magickey) ? $query->magickey : NULL, $query->masterkey)) {
+			return TRUE;
+		}	
+	}
+	
+	if($power == "posttofb") {
+		// This will be defined on the database
+		$query = new stdClass();
+		$query->masterkey = TRUE;
+			
+		if(gatekeeper(isset($query->gate) ? $query->gate : NULL, isset($query->magickey) ? $query->magickey : NULL, $query->masterkey)) {
+			return TRUE;
+		}	
+	}
+}
+
+/**
+ * Define a hook to define functionality (powers)
+ * this powers will show up when using gatekeeperui using the UI
+ */
+function gatekeeperui_get_powers() {
+	$powers = &drupal_static(__FUNCTION__);
+  if (!isset($powers) || $reset) {
+    $powers = module_invoke_all('register_power');
+    drupal_alter('register_power', $powers);
+  }
+
+  // See module_implements() for an explanation of this cast.
+  return (array) $powers;
+}
+

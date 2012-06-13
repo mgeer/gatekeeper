@@ -1,0 +1,178 @@
+<?php
+/**
+ * @file gatekeeper.module
+ * defines the main gatekeeper functionality
+ */
+
+/**
+ * Load all criteria in hook_register_gate
+ */
+function gatekeeper_get_gates($reset = FALSE) {
+	$gates = &drupal_static(__FUNCTION__);
+  if (!isset($gates) || $reset) {
+    $gates = module_invoke_all('register_gate');
+    drupal_alter('register_gate', $gates);
+  }
+
+  // See module_implements() for an explanation of this cast.
+  return (array) $gates;
+}
+
+/**
+ * Function to call gatekeeper
+ * $gate is the gate you which to open
+ * $magickey is the magigkey that you want to use to open that door,
+ * if the magickey you give equals the criteria used to validate the gate and the
+ * magickey and the current conditions, then you shall pass
+ */
+function gatekeeper($gate = NULL, $magickey = NULL, $masterkey = FALSE) {
+	// if we use the masterkey (equals to TRUE, defaults to FALSE)
+	// don't even bother calling the function,
+	// just return TRUE
+	if($masterkey) {
+		return TRUE;
+	}
+	else {
+		$gates = gatekeeper_get_gates();
+		
+		foreach($gates as $key => $item) {
+			// execute the callback stablished on the $gate
+			// and pass the $magickey
+			if($gate == $key) {
+				$function = $item["callback"];
+				if(function_exists($function)) {
+					$result = call_user_func($item["callback"], $magickey);
+					return $result;	
+				}		
+			}
+		}
+	}
+}
+
+/**
+ * Implements hook_register_gate()
+ */
+function gatekeeper_register_gate() {
+	$gates = array();
+	// Define the options
+	$gates["platform"]["options"] = array(
+		"development", "production"
+	);
+	// Define the callback to call for validation
+	$gates["platform"]["callback"] = "_gatekeeper_platform";
+	
+	$gates["role"] = array(
+		'options' => array(
+			'god',
+			'isadmin',
+			'all',
+			'registered',
+			'anonymous',
+		),
+		'callback' => "_gatekeeper_role"
+	);
+	
+	// Language gate
+	$gates["lang"] = array(
+		'options' => language_list(),
+		'callback' => "_gatekeeper_lang"
+	);
+	
+	$gates["timezone"] = array(
+		'options' => system_time_zones(FALSE),
+		'callback' => "_gatekeeper_timezone"
+	);
+	
+	return $gates;
+}
+
+/**
+ * Gate by platform
+ */
+function _gatekeeper_platform($options) {
+	$access = FALSE;
+	if($options == "development") {
+		// check if the current site is the development version
+		if(variable_get("siteversion") == "development") {
+			$access = TRUE;
+		}
+	}
+	elseif($options == "production") {
+		if(variable_get("siteversion") == "production") {
+			$access = TRUE;
+		}
+	}
+	else {
+		$access = FALSE;
+	}
+	
+	return $access;
+}
+
+/**
+ * Gate by user role
+ */
+function _gatekeeper_role($options) {
+	global $user;
+	$access = FALSE;
+	switch($options) {
+		case "god":
+			if($user->uid == 1) {
+				$access = TRUE;
+			}
+			break;
+		
+		case "all":
+			$access = TRUE;
+			break; 
+			
+		case "anonymous":
+			if(user_is_anonymous()) {
+				$access = TRUE;
+			}
+			break;
+		
+		case "registered":
+			if(user_is_logged_in()) {
+				$access = TRUE;
+			}
+			break;
+		
+		case "isadmin":
+			if(user_access("administer site")) {
+				$access = TRUE;
+			}
+			break;
+	}
+	
+	return $access;
+}
+
+/**
+ * Gate by language
+ */
+function _gatekeeper_lang($option) {
+	$access = FALSE;
+	if(drupal_multilingual()) {
+		global $user;
+		
+		if($option == $user->language) {
+			$access = TRUE;
+		}
+	}
+
+	return $access;
+}
+
+/**
+ * Gate by timezone
+ */
+function _gatekeeper_timezone($option) {
+	$timezone = drupal_get_user_timezone();
+	$access = FALSE;
+	if($option == $timezone) {
+		$access = TRUE;
+	}
+		
+	return $access;	
+}

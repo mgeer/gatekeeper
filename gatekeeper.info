@@ -1,0 +1,4 @@
+name = Gatekeeper
+description = Enable functionality by criteria
+core = 7.x
+files[] = gatekeeper.module

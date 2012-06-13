@@ -1,0 +1,4 @@
+name = Gatekeeper UI
+description = TODO: Description of module
+core = 7.x
+files[] = gatekeeperui.module
