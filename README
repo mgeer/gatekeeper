@@ -21,7 +21,7 @@ granted access to that feature.
 The way to use it is really simple:
 
 <?php
-if(gatekeeper("timezone", "America/Chicago")) {
+if(gatekeeperapi("timezone", "America/Chicago")) {
   return "You live in Chicago!";
 }
 ?>
@@ -37,7 +37,7 @@ A more complex example is this one, suppose that you want to test a new feature
 for users who are registered and have spanish as language and live in Chicago, you'll do:
 
 <?php
-if(gatekeeper("timezone", "America/Chicago") && gatekeeper("role", "registered") && gatekeeper("lang", "es")) {
+if(gatekeeperapi("timezone", "America/Chicago") && gatekeeper("role", "registered") && gatekeeper("lang", "es")) {
   return "You live in Chicago, are a registered user and hablas español";
 }
 ?>
@@ -87,7 +87,42 @@ function function_to_call_to_check_if_the_user_is_male_or_female($option) {
 
 And then you'll use it with:
 
-if(gatekeeper("gender", "female")) {
+if(gatekeeperapi("gender", "female")) {
   // do something that will only be processed to girls
 }
 
+INTRODUCE POWERS!
+You can user gatekeeper to automatically detect a context based on powers and
+then use the UI to control and assign those powers
+
+Again, an example will be better.
+
+Let's say that you want to introduce a new feature in your site which is that
+users will be able to tweet. so you add a new link to tweet. You encapsule
+the functionality inside gatekeeper and create a new power "toTweet".
+
+The first thing you need to do is create a hook_register_power so gatekeeper
+recognizes this power.
+
+After that you encapsule your funcionality like this:
+
+<?php
+ if(gatekeeper("toTweet")) {
+	// Do your functionality here
+ }
+?>
+
+Then on the UI you can assign gates and magickeys to this power, once you
+are ready to go live with your feature, you just have to enable the masterkey
+on that power.
+
+You can even add multiple powers and gates.
+
+PERMISSIONS AND USER ACCESS
+Remember that gatekeeper IS NOT a replacement for the access system in Drupal.
+You need to always be aware of it, gatekeeper allows you to control how to release
+new features which is really hard to do with the current access system.
+
+If you don't use the access system provided by Drupal, YOU WILL HAVE SECURITY HOLES!
+
+USE WITH CARE!
