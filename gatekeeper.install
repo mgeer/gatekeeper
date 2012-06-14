@@ -54,7 +54,7 @@ function gatekeeper_schema() {
       'gate' => array('gate'), 
       'magickey' => array('magickey'),
     ), 
-    'primary key' => array('power'),
+    'primary key' => array('power', 'gate'),
   );
   
   return $schema;

@@ -5,37 +5,195 @@
  */
 
 /**
+ * Implements hook_permission()
+ */
+function gatekeeperui_permission() {
+	return array(
+		'use gatekeeper' => array(
+			'title' => t("Use Gatekeeper"),
+			'description' => t("Create and edit powers and gates")
+		)
+	);
+}
+
+/**
  * Implementation of hook_menu().
  */
 function gatekeeperui_menu() {
-	/*
-  // This is the minimum information you can provide for a menu item.
-  $items['TODO: Enter path'] = array(
-    'title' => 'TODO: Enter menu item title',
-    'page callback' => 'TODO: Enter callback function',
-    'access arguments' => array('TODO: Enter user permissions'),
+	$items['admin/structure/gatekeeper'] = array(
+    'title' => 'Gatekeeper',
+    'page callback' => 'gatekeeperui_admin_page',
+    'access arguments' => array('use gatekeeper'),
+		'description' => 'Add and edit powers and gates to control functionality and features'
   );
-  // more complex menu item
-  $items['TODO: Enter path'] = array(
-    'title' => 'TODO: Enter menu item title',
-    'description' => 'TODO: Enter description',
-    'page callback' => 'TODO: Enter callback function',
-    'page arguments' => '', // An array of arguments to pass to the page callback function. Integer values pass the corresponding URL component.
-    'access callback' => '', // defaults to user_access()
-    'access arguments' => array('TODO: Enter user permissions'),
-    'weight' => 0,
-    'type' => MENU_NORMAL_ITEM, // One of MENU_NORMAL_ITEM / MENU_CALLBACK / MENU_SUGGESTED_ITEM / MENU_LOCAL_TASK / MENU_DEFAULT_LOCAL_TASK
-    'menu_name' => '', // Menu to place this item in.
-    'title callback' => '', // Function to generate the title, defaults to t(). 
-    'title arguments' => '', // Arguments to send to t() or your custom callback. 
+	
+	$items['admin/structure/gatekeeper/add'] = array(
+    'title' => 'Add Power',
+    'page callback' => 'drupal_get_form',
+		'page arguments' => array("gatekeeperui_form"),
+    'access arguments' => array('use gatekeeper'),
+		'description' => 'Add and edit powers and gates to control functionality and features',
+		'type' => MENU_LOCAL_ACTION
   );
-  // OPTIONAL: Fill in additional static menu items
-	*/
+	
+	$items['admin/structure/gatekeeper/edit/%/%'] = array(
+    'title' => 'Edit Power',
+    'page callback' => 'drupal_get_form',
+		'page arguments' => array("gatekeeperui_form", 4, 5),
+    'access arguments' => array('use gatekeeper'),
+		'description' => 'Add and edit powers and gates to control functionality and features',
+		'type' => MENU_CALLBACK
+  );
 
   return $items;
 }
 
+/**
+ * Insert/update function
+ */
+function gatekeeperui_save($data) {
+	try {
+		if(!isset($data)) {
+			throw new Exception("Data missing");
+		}
+		else {
+			try {
+				$query = db_merge("gatekeeper")
+					->key(array("power" => $data["power"], "gate" => $data["gate"]))
+					->fields(array("power" => $data["power"], "gate" => $data["gate"], "magickey" => $data["magickey"], "masterkey" => $data["masterkey"]))
+					->execute();
+				
+				if(!$query) {
+					throw new Exception("Problem with the query");
+				}
+			}
+			catch (Exception $e) {
+				watchdog("gatekeeperui", $e, array(), WATCHDOG_ERROR);
+			}
+		}
+	}
+	catch (Exception $e) {
+		watchdog("gatekeeperui", $e, array(), WATCHDOG_ERROR);
+	}
+}
 
+/**
+ * Form callback
+ */
+function gatekeeperui_form($form, $edit) {
+	$form = array();
+	
+	if(isset($edit["build_info"]["args"][0]) && isset($edit["build_info"]["args"][1])) {
+		$power = $edit["build_info"]["args"][0];
+		$gate = $edit["build_info"]["args"][1];
+		
+		$data = gatekeeper_get($power, $gate);
+		$magickey = $data->magickey;
+		$masterkey = $data->masterkey;
+	}
+	
+	$powers = gatekeeper_get_powers();
+	
+	$options = array();
+	foreach($powers as $key => $pow) {
+		$options[$pow] = $pow;
+	}
+	
+	$form["power"] = array(
+		'#type' => 'select',
+		'#title' => t("Power"),
+		'#description' => t("Select a power from the list. Powers must be defined via code and must be defined by your module/code via hook_register_power"),
+		'#required' => TRUE,
+		'#options' => $options,
+		'#default_value' => isset($power) ? $options[$power] : NULL
+	);
+	
+	$form["gate"] = array(
+		'#type' => 'textfield',
+		'#title' => t("Enter a gate"),
+		'#description' => t("The gate is the criteria you're going to choose to validate if a user has access to a feature or not"),
+		'#required' => TRUE,
+		'#default_value' => isset($gate) ? $gate : NULL
+	);
+	
+	$form["magickey"] = array(
+		'#type' => 'textfield',
+		'#title' => t("Enter the magic key"),
+		'#description' => t("The magic key is the value that will be used to check if the user has access to a gate"),
+		'#required' => TRUE,
+		'#default_value' => isset($magickey) ? $magickey : NULL
+	);
+	
+	$form["masterkey"] = array(
+		'#type' => 'checkbox',
+		'#default_option' => FALSE,
+		'#title' => t("Activate master key?"),
+		'#description' => t("If you activate the master key all users will be granted access"),
+		'#default_value' => isset($masterkey) ? $masterkey : NULL
+	);
+	
+	$form["submit"] = array(
+		'#type' => 'submit',
+		'#value' => t("Submit")
+	);
+	
+	return $form;
+}
 
+/**
+ * Submit callback for gatekeeperui_form()
+ *
+ * @see gatekeeperui_form()
+ */
+function gatekeeperui_form_submit(&$form, &$form_state) {
+	$values = $form_state["values"];
+	
+	$unset = array("submit", "form_build_id", "form_token", "form_id", "op");
+	foreach($unset as $item) {
+		unset($values[$item]);
+	}
+	
+	gatekeeperui_save($values);
+	drupal_goto("admin/structure/gatekeeper");
+}
 
-
+/**
+ * table to administer gatekeeper
+ */
+function gatekeeperui_admin_page() {
+	$list = gatekeeper_list();
+	if($list) {
+		$header = array(
+			array("data" => t("Power"), 'field' => "power"),
+			array("data" => t("Gate"), 'field' => "gate"),
+			array("data" => t("Magic key"), 'field' => "magickey"),
+			array("data" => t("Master key"), 'field' => "masterkey"),
+			'edit',
+		);
+		
+		foreach($list as $item) {
+			$row["power"] = $item->power;
+			$row["gate"] = $item->gate;
+			$row["magickey"] = $item->magickey;
+			switch($item->masterkey) {
+				case 0:
+					$masterkey = "DISABLED";
+					break;
+				
+				case 1:
+					$masterkey = "ENABLED";
+					break;
+			}
+			$row["masterkey"] = $masterkey;
+			$row["edit"] = l(t("Edit"), "admin/structure/gatekeeper/edit/" . $item->power . "/" . $item->gate);
+			$rows[] = $row;
+		}
+		
+		$output = theme("table", array("header" => $header, "rows" => $rows));	
+	}
+	else {
+		$output = "Gatekeeper is not keeping anything";
+	}
+	
+	return $output;
+}

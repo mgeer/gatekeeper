@@ -1,4 +1,5 @@
 name = Gatekeeper UI
-description = TODO: Description of module
+description = Gatekeeper administration
 core = 7.x
 files[] = gatekeeperui.module
+dependencies[] = gatekeeper

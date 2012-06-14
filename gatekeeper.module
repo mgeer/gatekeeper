@@ -65,6 +65,32 @@ function gatekeeperapi($gate = NULL, $magickey = NULL, $masterkey = FALSE) {
 }
 
 /**
+ * Get all powers with their gates, magic keys and master key status
+ */
+function gatekeeper_list() {
+	$results = db_select("gatekeeper", "g")
+		->fields("g")
+		->execute()
+		->fetchAll();
+		
+	return $results;
+}
+
+/**
+ * Given a power and a gate, return the whole object from the db
+ */
+function gatekeeper_get($power, $gate) {
+	$results = db_select("gatekeeper", "g")
+		->fields("g")
+		->condition("power", $power, "=")
+		->condition("gate", $gate, "=")
+		->execute()
+		->fetchObject();
+		
+	return $results;
+}
+
+/**
  * Check who has a given power
  * The power will be queried to the database to get a gate and a magickey
  * That gate and magickey will be passed to gatekeeper
@@ -75,8 +101,8 @@ function gatekeeper($power) {
 	$results = db_select("gatekeeper", "g")
 		->condition("power", $power, "=")
 		->fields("g")
-		->fetchAll()
-		->execute();
+		->execute()
+		->fetchAll();
 		
 	// we should loop here since there could be many gates for one power
 	// for instance, we could set: tweet power to gate lang en
