@@ -80,13 +80,10 @@ function gatekeeperui_save($data) {
 /**
  * Form callback
  */
-function gatekeeperui_form($form, $edit) {
+function gatekeeperui_form($form, &$form_state, $power = NULL, $gate = NULL) {
 	$form = array();
 	
-	if(isset($edit["build_info"]["args"][0]) && isset($edit["build_info"]["args"][1])) {
-		$power = $edit["build_info"]["args"][0];
-		$gate = $edit["build_info"]["args"][1];
-		
+	if(isset($power) && isset($gate)) {
 		$data = gatekeeper_get($power, $gate);
 		$magickey = $data->magickey;
 		$masterkey = $data->masterkey;
@@ -105,23 +102,43 @@ function gatekeeperui_form($form, $edit) {
 		'#description' => t("Select a power from the list. Powers must be defined via code and must be defined by your module/code via hook_register_power"),
 		'#required' => TRUE,
 		'#options' => $options,
-		'#default_value' => isset($power) ? $options[$power] : NULL
+		'#default_value' => isset($power) ? $options[$power] : NULL,
+		'#disabled' => isset($power) ? TRUE : FALSE
 	);
 	
+	$gates = _gakekeeperui_form_get_gates();
+	$selected = isset($form_state['values']['gate']) ? $form_state['values']['gate'] : $gate;
+	
+	if(isset($magickey)) {
+		$selected_magickey = $magickey;
+	}
+	else {
+		$selected_magickey = isset($form_state["values"]["magickey"]) ? $form_state["values"]["magickey"] : NULL;
+	}
+	
 	$form["gate"] = array(
-		'#type' => 'textfield',
-		'#title' => t("Enter a gate"),
+		'#type' => 'select',
+		'#title' => t("Select a gate"),
 		'#description' => t("The gate is the criteria you're going to choose to validate if a user has access to a feature or not"),
 		'#required' => TRUE,
-		'#default_value' => isset($gate) ? $gate : NULL
+		'#options' => $gates,
+		'#default_value' => $selected,
+		'#ajax' => array(
+			'callback' => "_gatekeeperui_dropdown_callback",
+			'wrapper' => 'dropdown-replace',
+			'effect' => 'slide',
+		),
+		'#disabled' => isset($gate) ? TRUE : FALSE
 	);
 	
 	$form["magickey"] = array(
-		'#type' => 'textfield',
-		'#title' => t("Enter the magic key"),
+		'#type' => 'select',
+		'#title' => t("Select the magic key"),
 		'#description' => t("The magic key is the value that will be used to check if the user has access to a gate"),
-		'#required' => TRUE,
-		'#default_value' => isset($magickey) ? $magickey : NULL
+		'#prefix' => '<div id="dropdown-replace">',
+		'#suffix' => '</div>',
+		'#default_value' => $selected_magickey,
+		'#options' => _gatekeeperui_options($selected)
 	);
 	
 	$form["masterkey"] = array(
@@ -139,6 +156,50 @@ function gatekeeperui_form($form, $edit) {
 	
 	return $form;
 }
+
+/**
+ * Get all gates
+ */
+function _gakekeeperui_form_get_gates() {
+	$getgates = gatekeeper_get_gates();
+	$gates = array();
+	foreach($getgates as $key => $value) {
+		$gates[] = $key;
+	}
+	
+	return drupal_map_assoc($gates);
+}
+
+/**
+ * Just return the new formed $form["magickey"]
+ */
+function _gatekeeperui_dropdown_callback($form, $form_state) {
+	return $form['magickey'];
+}
+
+/**
+ * Function to get the magickeys depending on the selected gate
+ */
+function _gatekeeperui_options($gate) {
+	$magickeys = array();
+	$getgates = gatekeeper_get_gates();
+	
+	$getmagickeys = $getgates[$gate]["options"];
+	if($getmagickeys == array_values($getmagickeys)) {
+		foreach($getmagickeys as $key => $value) {
+			$magickeys[$value] = $value;
+		}
+	}
+	else {
+		foreach($getmagickeys as $key => $value) {
+			$magickeys[$key] = $key;
+		}
+	}
+	
+	return $magickeys;
+}
+
+
 
 /**
  * Submit callback for gatekeeperui_form()
