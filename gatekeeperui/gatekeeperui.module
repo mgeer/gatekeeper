@@ -44,6 +44,14 @@ function gatekeeperui_menu() {
 		'description' => 'Add and edit powers and gates to control functionality and features',
 		'type' => MENU_CALLBACK
   );
+	
+	$items['admin/structure/gatekeeper/delete/%/%'] = array(
+    'title' => 'Delete Power',
+    'page callback' => 'drupal_get_form',
+		'page arguments' => array("gatekeeperui_delete_form", 4, 5),
+    'access arguments' => array('use gatekeeper'),
+		'type' => MENU_CALLBACK
+  );
 
   return $items;
 }
@@ -75,6 +83,16 @@ function gatekeeperui_save($data) {
 	catch (Exception $e) {
 		watchdog("gatekeeperui", $e, array(), WATCHDOG_ERROR);
 	}
+}
+
+/**
+ * Delete gatekeeper
+ */
+function gatekeeperui_delete($power, $gate) {
+	db_delete("gatekeeper")
+		->condition("power", $power, "=")
+		->condition("gate", $gate, "=")
+		->execute();
 }
 
 /**
@@ -199,8 +217,6 @@ function _gatekeeperui_options($gate) {
 	return $magickeys;
 }
 
-
-
 /**
  * Submit callback for gatekeeperui_form()
  *
@@ -230,6 +246,7 @@ function gatekeeperui_admin_page() {
 			array("data" => t("Magic key"), 'field' => "magickey"),
 			array("data" => t("Master key"), 'field' => "masterkey"),
 			'edit',
+			'delete',
 		);
 		
 		foreach($list as $item) {
@@ -247,6 +264,7 @@ function gatekeeperui_admin_page() {
 			}
 			$row["masterkey"] = $masterkey;
 			$row["edit"] = l(t("Edit"), "admin/structure/gatekeeper/edit/" . $item->power . "/" . $item->gate);
+			$row["delete"] = l(t("Delete"), "admin/structure/gatekeeper/delete/" . $item->power . "/" . $item->gate);
 			$rows[] = $row;
 		}
 		
@@ -257,4 +275,39 @@ function gatekeeperui_admin_page() {
 	}
 	
 	return $output;
+}
+
+/**
+ * Delete form
+ */
+function gatekeeperui_delete_form($form, &$form_state, $power, $gate) {
+	$form = array();
+	
+	$form["power"] = array(
+		'#type' => 'hidden',
+		'#value' => $power
+	);
+	
+	$form["gate"] = array(
+		'#type' => 'hidden',
+		'#value' => $gate
+	);
+	
+	return confirm_form($form, 
+    t('Are you sure you want to delete the power %action with gate %gate?', array('%action' => $power, '%gate' => $gate)), 
+    'admin/config/system/actions/manage', 
+    t('This cannot be undone.'), 
+    t('Delete'), 
+    t('Cancel')
+  );
+}
+
+/**
+ * Submit callback for delete operations
+ */
+function gatekeeperui_delete_form_submit(&$form, &$form_state) {
+	$values = $form_state["values"];
+	
+	gatekeeperui_delete($values["power"], $values["gate"]);
+	drupal_goto("admin/structure/gatekeeper");
 }
